@@ -4,6 +4,8 @@ from itertools import combinations
 from operator import mul, __or__, __and__, __xor__
 from functools import reduce
 from abc import ABC, abstractmethod
+from typing import List, Any, Tuple, Iterable
+from pokereval.card import Card
 
 
 class HandLengthException(BaseException):
@@ -16,39 +18,60 @@ class BaseHandEvaluator(ABC):
         pass
 
     @abstractmethod
-    def evaluate(self, hand):
+    def evaluate(self, hand: List[Card]):
         raise NotImplementedError
 
-    def evaluate_hand(self, hand, board=[]):
-        """
-        Return the percentile of the best 5 card hand made from these
-        cards, against an equivalent number of cards.
-        """
+    @staticmethod
+    def _validate_inputs(hand, board):
+        """ Checks that hand lengths and board size are valid"""
         hand_lengths = [2, 5, 6, 7]
-
         if len(hand) not in hand_lengths:
             raise HandLengthException("Only %s hole cards are supported" % ", ".join(map(str, hand_lengths)))
-
         cards = list(hand) + list(board)
         if 2 > len(cards) > 7:
             # wrong number of cards
             raise HandLengthException("Only 2, 5, 6, 7 cards total are supported by evaluate_hand")
 
+        return cards
+
+    def _evaluate_possible_hands(self, possible_hands: List[Iterable], board: List[Card], benchmark_rank: int):
+        hands_beaten = 0
+        for h in possible_hands:
+            possible_opponent_rank = self.evaluate(list(h) + board)
+            if benchmark_rank < possible_opponent_rank:
+                hands_beaten += 1
+            # Note that this treats ties as exactly in the middle of wins/losses. May want to tune depending on target.
+            elif benchmark_rank == possible_opponent_rank:
+                hands_beaten += 0.5
+
+        return hands_beaten
+
+    def evaluate_hand(self, hand: List[Card], board: List[Card] = ()):
+        """
+        Return the percentile of the best 5 card hand made from these
+        cards, against an equivalent number of cards..
+
+        Uses the `.evaluate(cards)` method implemented in subclasses to identify rank.
+
+        Args:
+            hand (list): Contains cards in the hand of a given player
+            board (list): Contains cards on the board
+
+        Returns:
+            (float) hands_beaten / possible_opponent_hands
+        """
         # Default values in case we screw up
         rank = 7463
         percentile = 0.0
 
+        cards = self._validate_inputs(hand, board)
         rank = self.evaluate(cards)
 
+        # Here just iterates over all possible opponent hands to figure out how many are beaten.
         possible_opponent_hands = list(combinations(LookupTables.deck - set(cards), len(hand)))
-        hands_beaten = 0
-        for h in possible_opponent_hands:
-            possible_opponent_rank = self.evaluate(list(h) + board)
-            if rank < possible_opponent_rank:
-                # you beat this hand
-                hands_beaten += 1
-            elif rank == possible_opponent_rank:
-                hands_beaten += 0.5
+        hands_beaten = self._evaluate_possible_hands(possible_opponent_hands, board, rank)
+
+
         return float(hands_beaten) / len(list(possible_opponent_hands))
 
 
@@ -57,7 +80,7 @@ class TwoHandEvaluator(BaseHandEvaluator):
     def __init__(self):
         super(TwoHandEvaluator, self).__init__()
 
-    def evaluate(self, hand):
+    def evaluate(self, hand: List[Card]):
         """
         Using lookup table, return percentile of your hand with two cards
         """
@@ -78,7 +101,7 @@ class FiveHandEvaluator(BaseHandEvaluator):
     def __init__(self):
         super(FiveHandEvaluator, self).__init__()
 
-    def card_to_binary(self, card):
+    def card_to_binary(self, card: Card):
         """
         Convert the lookup_tables.Card representation to a binary
         representation for use in 5-card hand evaluation
@@ -104,12 +127,12 @@ class FiveHandEvaluator(BaseHandEvaluator):
         # OR them together to get the final result
         return b_mask | r_mask | p_mask | cdhs_mask
 
-    def card_to_binary_lookup(self, card):
+    def card_to_binary_lookup(self, card: Card):
         return LookupTables.Five.card_to_binary[card.rank][card.suit]
 
     # TODO: Return a class of hand too? Would be useful to see if we can make
     # a draw or something.
-    def evaluate(self, hand):
+    def evaluate(self, hand: List[Card]):
         """
         Return the rank of this 5-card hand amongst all 5-card hands.
         """
@@ -151,7 +174,7 @@ class SixHandEvaluator(BaseHandEvaluator):
     def __init__(self):
         super(SixHandEvaluator, self).__init__()
 
-    def card_to_binary(self, card):
+    def card_to_binary(self, card: Card):
         """
         Convert the lookup_tables.Card representation to a binary
         representation for use in 6-card hand evaluation
@@ -177,10 +200,10 @@ class SixHandEvaluator(BaseHandEvaluator):
         # OR them together to get the final result
         return b_mask | q_mask | r_mask | p_mask
 
-    def card_to_binary_lookup(self, card):
+    def card_to_binary_lookup(self, card: Card):
         return LookupTables.Six.card_to_binary[card.rank][card.suit]
 
-    def evaluate(self, hand):
+    def evaluate(self, hand: List[Card]):
         """
         Return the rank amongst all possible 5-card hands of any kind
         using the best 5-card hand from the given 6-card hand.
@@ -243,28 +266,28 @@ class SixHandEvaluator(BaseHandEvaluator):
         # Any time you can't disambiguate 2/4 or 1/3, use primes.
         # We also assume you can count bits or determine a power of two.
         # (see PopCount class.)
-
+        pc = PopCount()
         if even_xor == 0: # x-0
-            odd_popcount = PopCount.popcount(odd_xor)
+            odd_popcount = pc.popcount32_table16(odd_xor)
             if odd_popcount == 4: # 4-0
                 prime_product = reduce(mul, [card & 0xFF for card in bh])
                 return LookupTables.Six.prime_products_to_rank[prime_product]
             else: # 6-0, 2-0
                 return LookupTables.Six.odd_xors_to_rank[odd_xor]
         elif odd_xor == 0: # 0-x
-            even_popcount = PopCount.popcount(even_xor)
+            even_popcount = pc.popcount32_table16(even_xor)
             if even_popcount == 2: # 0-2
                 prime_product = reduce(mul, [card & 0xFF for card in bh])
                 return LookupTables.Six.prime_products_to_rank[prime_product]
             else: # 0-3
                 return LookupTables.Six.even_xors_to_rank[even_xor]
         else: # odd_popcount is 4 or 2
-            odd_popcount = PopCount.popcount(odd_xor)
+            odd_popcount = pc.popcount32_table16(odd_xor)
             if odd_popcount == 4: # 4-1
                 return LookupTables.Six.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
             else: # 2-x
-                even_popcount = PopCount.popcount(even_xor)
-                if even_popcount == 2: # 2-2
+                even_popcount = pc.popcount32_table16(even_xor)
+                if even_popcount == 2:  # 2-2
                     return LookupTables.Six.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
                 else: # 2-1
                     prime_product = reduce(mul, [card & 0xFF for card in bh])
@@ -275,7 +298,7 @@ class SevenHandEvaluator(BaseHandEvaluator):
     def __init__(self):
         super(SevenHandEvaluator, self).__init__()
 
-    def card_to_binary(self, card):
+    def card_to_binary(self, card: Card):
         """
         Convert the lookup_tables.Card representation to a binary
         representation for use in 7-card hand evaluation
@@ -287,14 +310,15 @@ class SevenHandEvaluator(BaseHandEvaluator):
         p_mask = LookupTables.primes[card.rank - 2]
         return b_mask | q_mask | r_mask | p_mask
 
-    def card_to_binary_lookup(self, card):
+    def card_to_binary_lookup(self, card: Card):
         return LookupTables.Seven.card_to_binary[card.rank][card.suit]
 
-    def evaluate(self, hand):
+    def evaluate(self, hand: List[Card]):
         """
         Return the rank amongst all possible 5-card hands of any kind
         using the best 5-card hand from the given 6-card hand.
         """
+        pc = PopCount()
         if len(hand) != 7:
             raise HandLengthException("Only 7-card hands are supported by the Seven evaluator")
 
@@ -314,7 +338,7 @@ class SevenHandEvaluator(BaseHandEvaluator):
 
         if flush_suit:
             # There will be 0-2 cards not in the right suit
-            even_popcount = PopCount.popcount(even_xor)
+            even_popcount = pc.popcount32_table16(even_xor)
             if even_xor == 0:
                 # TODO: There might be a faster way?
                 bits = reduce(__or__,
@@ -339,27 +363,26 @@ class SevenHandEvaluator(BaseHandEvaluator):
         # 1-3 => (1,2,2,2) - Two pair
         # 1-2 => (1,2,4) or (3,2,2) - Quads or full house
         # 1-1 => (3,4) - Quads
-
         if even_xor == 0:  # x-0
-            odd_popcount = PopCount.popcount(odd_xor)
+            odd_popcount = pc.popcount32_table16(odd_xor)
             if odd_popcount == 7:  # 7-0
                 return LookupTables.Seven.odd_xors_to_rank[odd_xor]
             else:  # 5-0, 3-0
                 prime_product = reduce(mul, [card & 0xFF for card in bh])
                 return LookupTables.Seven.prime_products_to_rank[prime_product]
         else:
-            odd_popcount = PopCount.popcount(odd_xor)
+            odd_popcount = pc.popcount32_table16(odd_xor)
             if odd_popcount == 5:  # 5-1
                 return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
             elif odd_popcount == 3:
-                even_popcount = PopCount.popcount(even_xor)
+                even_popcount = pc.popcount32_table16(even_xor)
                 if even_popcount == 2:  # 3-2
                     return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
                 else:  # 3-1
                     prime_product = reduce(mul, [card & 0xFF for card in bh])
                     return LookupTables.Seven.prime_products_to_rank[prime_product]
             else:
-                even_popcount = PopCount.popcount(even_xor)
+                even_popcount = pc.popcount32_table16(even_xor)
                 if even_popcount == 3:  # 1-3
                     return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
                 elif even_popcount == 2:  # 1-2
