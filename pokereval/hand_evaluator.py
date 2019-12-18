@@ -30,7 +30,7 @@ class BaseHandEvaluator(ABC):
             raise HandLengthException("Only %s hole cards are supported" % ", ".join(map(str, hand_lengths)))
 
         cards = list(hand) + list(board)
-        if (7 < len(cards) < 2):
+        if 2 > len(cards) > 7:
             # wrong number of cards
             raise HandLengthException("Only 2, 5, 6, 7 cards total are supported by evaluate_hand")
 
