@@ -15,7 +15,7 @@ class HandLengthException(BaseException):
 class BaseHandEvaluator(ABC):
 
     def __init__(self):
-        pass
+        self.pc = PopCount()
 
     @abstractmethod
     def evaluate(self, hand: List[Card]):
@@ -53,6 +53,9 @@ class BaseHandEvaluator(ABC):
 
         Uses the `.evaluate(cards)` method implemented in subclasses to identify rank.
 
+        # TODO: Could pass 'oppoonent range' instead of all possible cards
+          to paramatarize the possible opponent hands in call to `_evaluate_possible_hands()`
+
         Args:
             hand (list): Contains cards in the hand of a given player
             board (list): Contains cards on the board
@@ -70,7 +73,6 @@ class BaseHandEvaluator(ABC):
         # Here just iterates over all possible opponent hands to figure out how many are beaten.
         possible_opponent_hands = list(combinations(LookupTables.deck - set(cards), len(hand)))
         hands_beaten = self._evaluate_possible_hands(possible_opponent_hands, board, rank)
-
 
         return float(hands_beaten) / len(list(possible_opponent_hands))
 
@@ -142,9 +144,9 @@ class FiveHandEvaluator(BaseHandEvaluator):
         # This implementation uses the binary representation from
         # card_to_binary
         card_to_binary = self.card_to_binary_lookup
-
         # bh stands for binary hand
         bh = list(map(card_to_binary, hand))
+
         has_flush = reduce(__and__, bh, 0xF000)
         # This is a unique number based on the ranks if your cards,
         # assuming your cards are all different
@@ -152,20 +154,18 @@ class FiveHandEvaluator(BaseHandEvaluator):
         if has_flush:
             # Look up the rank of this flush
             return LookupTables.Five.flushes[q]
+
         else:
-            # The q still works as a key if you have 5 unique cards,
-            # so see if we can look it up
+            # The q still works as a key if you have 5 unique cards.
+            # First we look for straights, then duplicate value. (pair, trip, etc.)
             possible_rank = LookupTables.Five.unique5[q]
             if possible_rank != 0:
                 return possible_rank
             else:
-                # We need a different lookup table with different keys
                 # Compute the unique product of primes, because we have a pair
                 # or trips, etc. Use the product to look up the rank.
                 q = reduce(mul, [card & 0xFF for card in bh])
-                # Here, use dict instead of sparse array (basically hashing)
-                # I didn't bother using "perfect hash", the python hashing
-                # shouldn't be terrible
+                # Here, use dict instead of sparse array
                 return LookupTables.Five.pairs.get(q)
 
 
@@ -174,11 +174,9 @@ class SixHandEvaluator(BaseHandEvaluator):
     def __init__(self):
         super(SixHandEvaluator, self).__init__()
 
-    def card_to_binary(self, card: Card):
-        """
-        Convert the lookup_tables.Card representation to a binary
-        representation for use in 6-card hand evaluation
-        """
+    @staticmethod
+    def card_to_binary(card: Card):
+        """ Convert the Card to a binary representation for use in 6-card hand evaluation"""
         # This a variant on Cactus Kev's algorithm. We need to replace
         # the 4-bit representation of suit with a prime number representation
         # so we can look up whether something is a flush by prime product
@@ -200,8 +198,38 @@ class SixHandEvaluator(BaseHandEvaluator):
         # OR them together to get the final result
         return b_mask | q_mask | r_mask | p_mask
 
-    def card_to_binary_lookup(self, card: Card):
+    @staticmethod
+    def card_to_binary_lookup(card: Card):
         return LookupTables.Six.card_to_binary[card.rank][card.suit]
+
+    def _evaluate_0x(self, bh, even_xor):
+        even_popcount = self.pc.popcount32_table16(even_xor)
+        if even_popcount == 2:  # 0-2
+            prime_product = reduce(mul, [card & 0xFF for card in bh])
+            return LookupTables.Six.prime_products_to_rank[prime_product]
+        else:  # 0-3
+            return LookupTables.Six.even_xors_to_rank[even_xor]
+
+    def _evaluate_x0(self, bh, odd_xor):
+        odd_popcount = self.pc.popcount32_table16(odd_xor)
+        if odd_popcount == 4:  # 4-0
+            prime_product = reduce(mul, [card & 0xFF for card in bh])
+            return LookupTables.Six.prime_products_to_rank[prime_product]
+        else:  # 6-0, 2-0
+            return LookupTables.Six.odd_xors_to_rank[odd_xor]
+
+    def _evaluate_xx(self, bh, odd_xor, even_xor):
+        """Odd popcount either 4 or 2, even popcount either 2 or 1."""
+        odd_popcount = self.pc.popcount32_table16(odd_xor)
+        if odd_popcount == 4:  # 4-1
+            return LookupTables.Six.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+        else:  # 2-x
+            even_popcount = self.pc.popcount32_table16(even_xor)
+            if even_popcount == 2:  # 2-2
+                return LookupTables.Six.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+            else:  # 2-1
+                prime_product = reduce(mul, [card & 0xFF for card in bh])
+                return LookupTables.Six.prime_products_to_rank[prime_product]
 
     def evaluate(self, hand: List[Card]):
         """
@@ -211,11 +239,11 @@ class SixHandEvaluator(BaseHandEvaluator):
         if len(hand) != 6:
             raise HandLengthException("Only 6-card hands are supported by the Six evaluator")
 
-        # bh stands for binary hand, map to that representation
         card_to_binary = self.card_to_binary_lookup
         bh = list(map(card_to_binary, hand))
+        odd_xor = reduce(__xor__, bh) >> 16
+        even_xor = (reduce(__or__, bh) >> 16) ^ odd_xor
 
-        # We can determine if it's a flush using a lookup table.
         # Basically use prime number trick but map to bool instead of rank
         # Once you have a flush, there is no other higher hand you can make
         # except straight flush, so just need to determine the highest flush
@@ -225,8 +253,7 @@ class SixHandEvaluator(BaseHandEvaluator):
             flush_suit = LookupTables.Six.prime_products_to_flush[flush_prime]
 
         # Now use ranks to determine hand via lookup
-        odd_xor = reduce(__xor__, bh) >> 16
-        even_xor = (reduce(__or__, bh) >> 16) ^ odd_xor
+
         # If you have a flush, use odd_xor to find the rank
         # That value will have either 4 or 5 bits
         if flush_suit:
@@ -243,9 +270,9 @@ class SixHandEvaluator(BaseHandEvaluator):
         # Otherwise, get ready for a wild ride:
 
         # Can determine this by using 2 XORs to reduce the size of the
-        # lookup. You have an even number of cards, so any odd_xor with
-        # an odd number of bits set is not possible.
-        # Possibilities are odd-even:
+        # lookup. You have an even number of cards,
+        # any odd_xor with an odd number of bits set is not possible.
+        # Possibilities are `odd_xor`-`even_xor`:
         # 6-0 => High card or straight (1,1,1,1,1,1)
         #   Look up by odd_xor
         # 4-1 => Pair (1,1,1,1,2)
@@ -266,32 +293,12 @@ class SixHandEvaluator(BaseHandEvaluator):
         # Any time you can't disambiguate 2/4 or 1/3, use primes.
         # We also assume you can count bits or determine a power of two.
         # (see PopCount class.)
-        pc = PopCount()
-        if even_xor == 0: # x-0
-            odd_popcount = pc.popcount32_table16(odd_xor)
-            if odd_popcount == 4: # 4-0
-                prime_product = reduce(mul, [card & 0xFF for card in bh])
-                return LookupTables.Six.prime_products_to_rank[prime_product]
-            else: # 6-0, 2-0
-                return LookupTables.Six.odd_xors_to_rank[odd_xor]
-        elif odd_xor == 0: # 0-x
-            even_popcount = pc.popcount32_table16(even_xor)
-            if even_popcount == 2: # 0-2
-                prime_product = reduce(mul, [card & 0xFF for card in bh])
-                return LookupTables.Six.prime_products_to_rank[prime_product]
-            else: # 0-3
-                return LookupTables.Six.even_xors_to_rank[even_xor]
-        else: # odd_popcount is 4 or 2
-            odd_popcount = pc.popcount32_table16(odd_xor)
-            if odd_popcount == 4: # 4-1
-                return LookupTables.Six.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
-            else: # 2-x
-                even_popcount = pc.popcount32_table16(even_xor)
-                if even_popcount == 2:  # 2-2
-                    return LookupTables.Six.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
-                else: # 2-1
-                    prime_product = reduce(mul, [card & 0xFF for card in bh])
-                    return LookupTables.Six.prime_products_to_rank[prime_product]
+        if even_xor == 0:  # x-0
+            return self._evaluate_x0(bh, odd_xor)
+        elif odd_xor == 0:  # 0-x
+            return self._evaluate_0x(bh, even_xor)
+        else:  # odd_popcount is 4 or 2
+            return self._evaluate_xx(bh, odd_xor, even_xor)
 
 
 class SevenHandEvaluator(BaseHandEvaluator):
@@ -318,7 +325,6 @@ class SevenHandEvaluator(BaseHandEvaluator):
         Return the rank amongst all possible 5-card hands of any kind
         using the best 5-card hand from the given 6-card hand.
         """
-        pc = PopCount()
         if len(hand) != 7:
             raise HandLengthException("Only 7-card hands are supported by the Seven evaluator")
 
@@ -338,7 +344,7 @@ class SevenHandEvaluator(BaseHandEvaluator):
 
         if flush_suit:
             # There will be 0-2 cards not in the right suit
-            even_popcount = pc.popcount32_table16(even_xor)
+            even_popcount = self.pc.popcount32_table16(even_xor)
             if even_xor == 0:
                 # TODO: There might be a faster way?
                 bits = reduce(__or__,
@@ -364,25 +370,25 @@ class SevenHandEvaluator(BaseHandEvaluator):
         # 1-2 => (1,2,4) or (3,2,2) - Quads or full house
         # 1-1 => (3,4) - Quads
         if even_xor == 0:  # x-0
-            odd_popcount = pc.popcount32_table16(odd_xor)
+            odd_popcount = self.pc.popcount32_table16(odd_xor)
             if odd_popcount == 7:  # 7-0
                 return LookupTables.Seven.odd_xors_to_rank[odd_xor]
             else:  # 5-0, 3-0
                 prime_product = reduce(mul, [card & 0xFF for card in bh])
                 return LookupTables.Seven.prime_products_to_rank[prime_product]
         else:
-            odd_popcount = pc.popcount32_table16(odd_xor)
+            odd_popcount = self.pc.popcount32_table16(odd_xor)
             if odd_popcount == 5:  # 5-1
                 return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
             elif odd_popcount == 3:
-                even_popcount = pc.popcount32_table16(even_xor)
+                even_popcount = self.pc.popcount32_table16(even_xor)
                 if even_popcount == 2:  # 3-2
                     return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
                 else:  # 3-1
                     prime_product = reduce(mul, [card & 0xFF for card in bh])
                     return LookupTables.Seven.prime_products_to_rank[prime_product]
             else:
-                even_popcount = pc.popcount32_table16(even_xor)
+                even_popcount = self.pc.popcount32_table16(even_xor)
                 if even_popcount == 3:  # 1-3
                     return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
                 elif even_popcount == 2:  # 1-2

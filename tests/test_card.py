@@ -44,8 +44,9 @@ class TestCards():
         with pytest.raises(InvalidCardError):
             Card(2, 5)
 
-class TestEvaluator():
 
+class TestEvaluator():
+    # TODO: Need to evaluate each type of hand at least once for each Evaluator subclass.
     def test_evaluator(self):
 
         with pytest.raises(HandLengthException):

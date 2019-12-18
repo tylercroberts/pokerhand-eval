@@ -5,59 +5,23 @@ class LookupTables:
     Top level attributes are general, like primes, deck, etc
     """
     primes = [2,3,5,7,11,13,17,19,23,29,31,37,41]
-    deck = set((
-        Card(2,1), Card(2,2), Card(2,3), Card(2,4),
-        Card(3,1), Card(3,2), Card(3,3), Card(3,4),
-        Card(4,1), Card(4,2), Card(4,3), Card(4,4),
-        Card(5,1), Card(5,2), Card(5,3), Card(5,4),
-        Card(6,1), Card(6,2), Card(6,3), Card(6,4),
-        Card(7,1), Card(7,2), Card(7,3), Card(7,4),
-        Card(8,1), Card(8,2), Card(8,3), Card(8,4),
-        Card(9,1), Card(9,2), Card(9,3), Card(9,4),
-        Card(10,1), Card(10,2), Card(10,3), Card(10,4),
-        Card(11,1), Card(11,2), Card(11,3), Card(11,4),
-        Card(12,1), Card(12,2), Card(12,3), Card(12,4),
-        Card(13,1), Card(13,2), Card(13,3), Card(13,4),
-        Card(14,1), Card(14,2), Card(14,3), Card(14,4)
-    ))
+
+    # This is a set
+    deck = {Card(2,1),Card(2,2),Card(2,3),Card(2,4),Card(3,1),Card(3,2),Card(3,3),Card(3,4),Card(4,1),
+            Card(4,2),Card(4,3),Card(4,4),Card(5,1),Card(5,2),Card(5,3),Card(5,4),Card(6,1),Card(6,2),
+            Card(6,3),Card(6,4),Card(7,1),Card(7,2),Card(7,3),Card(7,4),Card(8,1),Card(8,2),Card(8,3),
+            Card(8,4),Card(9,1),Card(9,2),Card(9,3),Card(9,4),Card(10,1),Card(10,2),Card(10,3),
+            Card(10,4),Card(11,1),Card(11,2),Card(11,3),Card(11,4),Card(12,1),Card(12,2),Card(12,3),
+            Card(12,4),Card(13,1),Card(13,2),Card(13,3),Card(13,4),Card(14,1),Card(14,2),Card(14,3),
+            Card(14,4)}
 
     class Two:
-        """
-        Next 3 lookups are for Zach's pre-flop eval
-        TODO: Remove these tables since we precalcuate the percentiles
-        """
-        preflop_order_matrix = [
-            [87,169,168,166,167,165,159,149,135,121,105,86,59],
-            [163,66,164,161,162,160,157,144,131,116,98,80,53],
-            [158,150,48,153,154,151,148,140,125,111,93,74,49],
-            [155,146,136,27,145,141,137,130,122,107,89,69,41],
-            [156,147,138,128,17,133,127,120,112,102,81,62,42],
-            [152,143,134,124,115,9,117,109,101,92,77,58,36],
-            [142,139,129,119,110,100,7,99,91,79,68,51,32],
-            [132,126,123,113,103,94,83,6,78,70,56,40,25],
-            [118,114,108,106,96,84,73,64,5,57,47,33,19],
-            [104,97,95,90,85,75,65,55,45,4,39,26,15],
-            [88,82,76,72,67,61,52,43,34,28,3,23,14],
-            [71,63,60,54,50,44,37,29,22,20,16,2,12],
-            [46,38,35,30,31,24,21,18,13,11,10,8,1]
-        ]
-        preflop_count_matrix = [
-            3,3,3,3,3,3,3,2,3,2,2,6,2,6,6,2,3,2,6,2,
-            2,2,6,2,6,6,3,2,2,2,2,6,6,2,2,6,2,2,6,6,
-            6,6,2,2,2,2,6,3,6,2,6,2,6,2,2,6,6,6,6,2,
-            2,6,2,2,2,3,2,6,6,6,2,2,2,6,2,2,6,6,6,6,
-            6,2,2,2,2,6,3,2,6,2,6,6,6,2,2,2,2,6,6,2,
-            6,6,2,2,6,2,6,2,6,2,6,6,2,2,2,6,6,2,2,6,
-            6,6,2,2,6,2,6,2,2,6,6,2,6,2,6,2,6,2,2,6,
-            6,2,2,6,6,2,2,6,6,2,6,2,6,6,2,2,6,2,6,6,
-            6,6,2,6,6,6,6,6,6
-        ]
-        preflop_count_sum = 663.0
-        
+
+        # TODO: Make this consistent, either all sorted, or all unsorted.
+        # TODO: Why is this percentile while others are ranked.
         # Table for suited 2-card hands
         # The row corresponds to the lower of the two cards
-        # TODO: I think this should be a symmetric matrix
-        # to remove the sorting requirement
+        # TODO: I think this should be a symmetric matrix to remove the sorting requirement
         suited_ranks_to_percentile = [
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -75,7 +39,7 @@ class LookupTables:
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.96832579185520362, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]
-        
+
         # Table for unsuited 2-card hands
         # For some reason I actually bothered to make this one
         # symmetric and not the other one
@@ -97,7 +61,7 @@ class LookupTables:
             [0, 0, 0.68174962292609353, 0.72398190045248867, 0.74811463046757165, 0.79185520361990946, 0.78280542986425339, 0.82503770739064852, 0.8491704374057315, 0.88386123680241324, 0.91402714932126694, 0.93363499245852188, 0.94268476621417796, 0.95475113122171951, 1.0, 0]
         ]
         
-    
+
     class Five:
         """
         Lookup tables for 5-card evaluator
@@ -535,7 +499,9 @@ class LookupTables:
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-            # Map binary representation of ranks having popcount of 5 to rank
+        
+        # Map binary representation of ranks having popcount of 5 to rank
+        # Which ranks have popcount of 5?
         unique5 = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -959,6 +925,7 @@ class LookupTables:
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 1600]
+
         # Map products of primes from 5-card hands to hand ranks
         # All of these hands have at least a pair
         pairs = {
@@ -2185,6 +2152,8 @@ class LookupTables:
             73952233: 1611, 76840601: 23, 79052387: 1610, 81947069: 13, 
             85147693: 179, 87598591: 12, 94352849: 167, 104553157: 11
         }
+        
+        # TODO: Figure out where these are used. May be unnecessary.
         # Map rank of 5-card hands to percentile against all other 5-card hands.
         # Warning, the shared board is not taken into account.
         rank_to_percentile_5 = [
@@ -7813,6 +7782,7 @@ class LookupTables:
         
         # Given the product of prime values of suits (2,3,5,7) corresponding to
         # (s,h,d,c) in a 6-card hand, if the value is in this set you have a flush.
+        # prime_products_to_flush[flush_prime]
         prime_products_to_flush = {
             # spades
             64:2, 96:2, 160:2, 224:2,
@@ -7823,7 +7793,9 @@ class LookupTables:
             # clubs
             33614:7, 50421:7, 84035:7, 117649:7
         }
-        
+
+        # If you have a flush, use odd_xor to find the rank
+        # That value will have either 4 or 5 bits
         flush_rank_bits_to_rank = {
             31: 9, 47: 1599, 55: 1598, 59: 1597,
             61: 1596, 62: 8, 63: 8, 79: 1595,
@@ -8577,6 +8549,7 @@ class LookupTables:
             7938: 1, 7940: 1, 7944: 1, 7952: 1,
             7968: 1, 8000: 1, 8064: 1
         }
+        
         
         prime_products_to_rank = {
             279052297: 1764, 39256075: 188, 196625: 295, 208502807: 240,
@@ -9978,7 +9951,6 @@ class LookupTables:
             294872: 2403, 16678882: 174, 248250353: 185, 1747625: 2271,
             1884782587: 13, 80314367: 59
         }
-        
         odd_xors_to_rank = {
             3: 310, 5: 298, 6: 297, 9: 286,
             10: 285, 12: 284, 17: 274, 18: 273,
@@ -10430,7 +10402,6 @@ class LookupTables:
             7940: 1600, 7944: 1600, 7952: 1600, 7968: 1600,
             8000: 1600, 8064: 1600
         }
-        
         even_xors_to_rank = {
             3584: 2601, 3073: 2610, 1538: 2730, 1027: 2819,
             2114: 2653, 4101: 2577, 4102: 2576, 7: 3303,
@@ -10505,7 +10476,6 @@ class LookupTables:
             4176: 2529, 4108: 2564, 1312: 2737, 545: 2874,
             4354: 2510, 84: 3114            
         }
-        
         even_xors_to_odd_xors_to_rank = {
             4096: { 2055: 3378, 2059: 3376, 2061: 3375, 2062: 3375,
             15: 1609, 2067: 3373, 2069: 3372, 2070: 3372,
@@ -13214,6 +13184,8 @@ class LookupTables:
         }
     
     class Seven:
+        # Convert to binary representation for seven-card evaluator
+        # card_to_binary[rank][suit]
         card_to_binary = [[], [],
             [0, 73730, 77826, 86018, 94210],
             [0, 139523, 143619, 151811, 160003],
@@ -13229,6 +13201,9 @@ class LookupTables:
             [0, 134228773, 134232869, 134241061, 134249253],
             [0, 268446761, 268450857, 268459049, 268467241]
         ]
+
+        # Given the product of prime values of suits (2,3,5,7) corresponding to
+        # (s,h,d,c) in a 6-card hand, if the value is in this set you have a flush.
         prime_products_to_flush = {
             128: 2, 192: 2, 288: 2, 320: 2, 448: 2, 480: 2, 672: 2, 800: 2, 1120: 2, 1568: 2,
             972: 3, 1458: 3, 2187: 3, 2430: 3, 3402: 3, 3645: 3, 5103: 3, 6075: 3, 8505: 3, 11907: 3,
