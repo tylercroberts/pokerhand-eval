@@ -1,8 +1,9 @@
 Poker Hand Evaluator
 ====================
 
-In pure python
+THIS IS NOT AN OFFICAL FORK OF THE POKER-EVAL LIBRARY
 
+Original Author:
 27 January 2011, Alvin Liang
 
 Introduction
