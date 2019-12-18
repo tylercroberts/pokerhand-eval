@@ -1,6 +1,6 @@
 import pytest
 from pokereval.card import Card, InvalidCardError
-from pokereval.hand_evaluator import HandEvaluator
+from pokereval.hand_evaluator import TwoHandEvaluator, FiveHandEvaluator, SixHandEvaluator, SevenHandEvaluator
 import numpy as np
 
 
@@ -35,26 +35,32 @@ class TestCards():
         with pytest.raises(InvalidCardError):
             Card(2, 5)
 
+class TestEvaluator():
+
     def test_two_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = []
-        score = HandEvaluator.evaluate_hand(hole, board)
-        assert np.isclose(score, 0.52337858220211153)
+        twe = TwoHandEvaluator()
+        score = twe.evaluate_hand(hole, board)
+        assert np.isclose(score, 0.503265306122449)
 
     def test_five_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3)]
-        score = HandEvaluator.evaluate_hand(hole, board)
+        fwe = FiveHandEvaluator()
+        score = fwe.evaluate_hand(hole, board)
         assert np.isclose(score, 0.9250693802035153)
 
     def test_six_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3), Card(5, 3)]
-        score = HandEvaluator.evaluate_hand(hole, board)
+        swe = SixHandEvaluator()
+        score = swe.evaluate_hand(hole, board)
         assert np.isclose(score, 0.4405797101449275)
 
     def test_seven_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3), Card(5, 3), Card(5, 4)]
-        score = HandEvaluator.evaluate_hand(hole, board)
+        swe = SevenHandEvaluator()
+        score = swe.evaluate_hand(hole, board)
         assert np.isclose(score, 0.8909090909090909)
