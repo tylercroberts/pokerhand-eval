@@ -1,13 +1,10 @@
-import unittest
-try:
-    import test.support as test_support
-except ImportError:
-    from test import test_support 
-
+import pytest
 from pokereval.card import Card, InvalidCardError
 from pokereval.hand_evaluator import HandEvaluator
+import numpy as np
 
-class CardInitTestCase(unittest.TestCase):
+
+class TestCards():
     def test_rank(self):
         for i in range(2, 15):
             Card(i, 1)
@@ -17,11 +14,11 @@ class CardInitTestCase(unittest.TestCase):
             Card(i, 1)
             Card(i.lower(), 1)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Card({}, 1)
-        with self.assertRaises(InvalidCardError):
+        with pytest.raises(InvalidCardError):
             Card(1, 1)
-        with self.assertRaises(InvalidCardError):
+        with pytest.raises(InvalidCardError):
             Card(15, 1)
 
     def test_suit(self):
@@ -31,58 +28,33 @@ class CardInitTestCase(unittest.TestCase):
             Card(2, i)
             Card(2, i.upper())
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Card(2, [])
-        with self.assertRaises(InvalidCardError):
+        with pytest.raises(InvalidCardError):
             Card(2, 0)
-        with self.assertRaises(InvalidCardError):
-            Card(2, 5)      
-
-class TwoCardsTestCase(unittest.TestCase):
+        with pytest.raises(InvalidCardError):
+            Card(2, 5)
 
     def test_two_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = []
         score = HandEvaluator.evaluate_hand(hole, board)
-        self.assertEqual(score, 0.52337858220211153)
-
-
-class FiveCardsTestCase(unittest.TestCase):
+        assert np.isclose(score, 0.52337858220211153)
 
     def test_five_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3)]
         score = HandEvaluator.evaluate_hand(hole, board)
-        self.assertEqual(score, 0.9250693802035153)
+        assert np.isclose(score, 0.9250693802035153)
 
-
-class SixCardsTestCase(unittest.TestCase):
-
-    def test_five_cards(self):
+    def test_six_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3), Card(5, 3)]
         score = HandEvaluator.evaluate_hand(hole, board)
-        self.assertEqual(score, 0.4405797101449275)
+        assert np.isclose(score, 0.4405797101449275)
 
-
-class SevenCardsTestCase(unittest.TestCase):
-
-    def test_five_cards(self):
+    def test_seven_cards(self):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3), Card(5, 3), Card(5, 4)]
         score = HandEvaluator.evaluate_hand(hole, board)
-        self.assertEqual(score, 0.8909090909090909)
-
-
-def test_main():
-    test_support.run_unittest(
-        CardInitTestCase,
-        TwoCardsTestCase,
-        FiveCardsTestCase,
-        SixCardsTestCase,
-        SevenCardsTestCase,
-    )
-
-
-if __name__ == "__main__":
-    test_main()
+        assert np.isclose(score, 0.8909090909090909)
