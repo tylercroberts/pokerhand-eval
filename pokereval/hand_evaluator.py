@@ -396,8 +396,7 @@ class SevenHandEvaluator(BaseHandEvaluator):
                                   [(card >> 16) for card in [card for card in bh if (card >> 12) & 0xF == flush_suit]])
                     return LookupTables.Seven.flush_rank_bits_to_rank[bits]
 
-        # Odd-even XOR again, see Six.evaluate_rank for details
-        # 7 is odd, so you have to have an odd number of bits in odd_xor
+        # 7 cards is odd, so you have to have an odd number of bits in odd_xor
         # 7-0 => (1,1,1,1,1,1,1) - High card
         # 5-1 => (1,1,1,1,1,2) - Pair
         # 5-0 => (1,1,1,1,3) - Trips
