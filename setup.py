@@ -28,7 +28,6 @@ setup(
         ],
         "tests": ["pytest==5.2.1",
                   "pytest-cov==2.8.1",
-                  "coverage==3.7.1",
-                  "coveralls==1.9.2"]
+                  "coveralls"]
     },
 )
