@@ -358,27 +358,75 @@ class SevenHandEvaluator(BaseHandEvaluator):
     def card_to_binary_lookup(self, card: Card):
         return LookupTables.Seven.card_to_binary[card.rank][card.suit]
 
-    def evaluate(self, hand: List[Card]):
+    def _evaluate_x0(self, bh: Iterable, odd_xor):
         """
-        Return the rank amongst all possible 5-card hands of any kind
-        using the best 5-card hand from the given 6-card hand.
+        Looks up rank for certain hands: High card, straight, trips, or full house (from 2 trips)
+
+        Possibilities are:
+            7-0 => (1,1,1,1,1,1,1) - High card
+            5-0 => (1,1,1,1,3) - Trips
+            3-0 => (1,3,3) - Full house
+        Args:
+            bh: Binary representation of each card in hand as a list of ints.
+            odd_xor:
+
+        Returns:
+            (int) rank determined from lookup table.
         """
-        if len(hand) != 7:
-            raise HandLengthException("Only 7-card hands are supported by the Seven evaluator")
+        odd_popcount = self.pc.popcount32_table16(odd_xor)
+        if odd_popcount == 7:  # 7-0
+            return LookupTables.Seven.odd_xors_to_rank[odd_xor]
+        else:  # 5-0, 3-0
+            prime_product = reduce(mul, [card & 0xFF for card in bh])
+            return LookupTables.Seven.prime_products_to_rank[prime_product]
 
-        # bh stands for binary hand, map to that representation
-        card_to_binary = self.card_to_binary_lookup
-        bh = list(map(card_to_binary, hand))
+    def _evaluate_xx(self, bh, odd_xor, even_xor):
+        """
+        Evaluate other non-flush hands: Pair, Two Pair, 4 of a kind or full house:
 
+            5-1 => (1,1,1,1,1,2) - Pair
+            3-2 => (1,1,1,2,2) - Two pair
+            3-1 => (1,1,1,4) or (1,1,3,2) - Quads or full house
+            1-3 => (1,2,2,2) - Two pair
+            1-2 => (1,2,4) or (3,2,2) - Quads or full house
+            1-1 => (3,4) - Quads
+
+        Args:
+            bh:
+            odd_xor:
+            even_xor:
+
+        Returns:
+
+        """
+        odd_popcount = self.pc.popcount32_table16(odd_xor)
+        if odd_popcount == 5:  # 5-1
+            return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+        elif odd_popcount == 3:
+            even_popcount = self.pc.popcount32_table16(even_xor)
+            if even_popcount == 2:  # 3-2
+                return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+            else:  # 3-1
+                prime_product = reduce(mul, [card & 0xFF for card in bh])
+                return LookupTables.Seven.prime_products_to_rank[prime_product]
+        else:
+            even_popcount = self.pc.popcount32_table16(even_xor)
+            if even_popcount == 3:  # 1-3
+                return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+            elif even_popcount == 2:  # 1-2
+                prime_product = reduce(mul, [card & 0xFF for card in bh])
+                return LookupTables.Seven.prime_products_to_rank[prime_product]
+            else:  # 1-1
+                return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+
+    def _evaluate_flush(self, bh, odd_xor, even_xor):
+        """"""
+        # Basically use prime number trick but map to bool instead of rank
         # Use a lookup table to determine if it's a flush as with 6 cards
         flush_prime = reduce(mul, [(card >> 12) & 0xF for card in bh])
         flush_suit = False
         if flush_prime in LookupTables.Seven.prime_products_to_flush:
             flush_suit = LookupTables.Seven.prime_products_to_flush[flush_prime]
-
-        # Now use ranks to determine hand via lookup
-        odd_xor = reduce(__xor__, bh) >> 16
-        even_xor = (reduce(__or__, bh) >> 16) ^ odd_xor
 
         if flush_suit:
             # There will be 0-2 cards not in the right suit
@@ -396,40 +444,33 @@ class SevenHandEvaluator(BaseHandEvaluator):
                                   [(card >> 16) for card in [card for card in bh if (card >> 12) & 0xF == flush_suit]])
                     return LookupTables.Seven.flush_rank_bits_to_rank[bits]
 
+    def evaluate(self, hand: List[Card]):
+        """
+        Return the rank amongst all possible 5-card hands of any kind
+        using the best 5-card hand from the given 6-card hand.
+        """
+        if len(hand) != 7:
+            raise HandLengthException("Only 7-card hands are supported by the Seven evaluator")
+
+        # bh stands for binary hand, map to that representation
+        card_to_binary = self.card_to_binary_lookup
+        bh = list(map(card_to_binary, hand))
+        # Now use ranks to determine hand via lookup
+        odd_xor = reduce(__xor__, bh) >> 16
+        even_xor = (reduce(__or__, bh) >> 16) ^ odd_xor
+
+        flush_out = self._evaluate_flush(bh, odd_xor, even_xor)
+
+        # TODO: This should be setting rank = _evaluate_flush, as with everything else, then return outside ifs
+        if flush_out is not None:
+            return flush_out
+
+
         # 7 cards is odd, so you have to have an odd number of bits in odd_xor
-        # 7-0 => (1,1,1,1,1,1,1) - High card
-        # 5-1 => (1,1,1,1,1,2) - Pair
-        # 5-0 => (1,1,1,1,3) - Trips
-        # 3-2 => (1,1,1,2,2) - Two pair
-        # 3-1 => (1,1,1,4) or (1,1,3,2) - Quads or full house
-        # 3-0 => (1,3,3) - Full house
-        # 1-3 => (1,2,2,2) - Two pair
-        # 1-2 => (1,2,4) or (3,2,2) - Quads or full house
-        # 1-1 => (3,4) - Quads
+
         if even_xor == 0:  # x-0
-            odd_popcount = self.pc.popcount32_table16(odd_xor)
-            if odd_popcount == 7:  # 7-0
-                return LookupTables.Seven.odd_xors_to_rank[odd_xor]
-            else:  # 5-0, 3-0
-                prime_product = reduce(mul, [card & 0xFF for card in bh])
-                return LookupTables.Seven.prime_products_to_rank[prime_product]
+            return self._evaluate_x0(bh, odd_xor)
+
         else:
-            odd_popcount = self.pc.popcount32_table16(odd_xor)
-            if odd_popcount == 5:  # 5-1
-                return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
-            elif odd_popcount == 3:
-                even_popcount = self.pc.popcount32_table16(even_xor)
-                if even_popcount == 2:  # 3-2
-                    return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
-                else:  # 3-1
-                    prime_product = reduce(mul, [card & 0xFF for card in bh])
-                    return LookupTables.Seven.prime_products_to_rank[prime_product]
-            else:
-                even_popcount = self.pc.popcount32_table16(even_xor)
-                if even_popcount == 3:  # 1-3
-                    return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
-                elif even_popcount == 2:  # 1-2
-                    prime_product = reduce(mul, [card & 0xFF for card in bh])
-                    return LookupTables.Seven.prime_products_to_rank[prime_product]
-                else:  # 1-1
-                    return LookupTables.Seven.even_xors_to_odd_xors_to_rank[even_xor][odd_xor]
+            return self._evaluate_xx(bh, odd_xor, even_xor)
+
