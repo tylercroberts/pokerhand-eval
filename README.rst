@@ -71,7 +71,8 @@ work on this in the future. Basically, I made it, so why not release it?
 Contributors
 ------------
 
--  Me! Go me!
+-  Alvin Liang (Original Author)
+-  Tyler Roberts (Changes in this fork)
 -  Zach Wissner-Gross (2-card algorithm)
 -  arslr (Fixes for other Python versions)
 -  Jim Kelly (Help with packaging, additional documentation)
