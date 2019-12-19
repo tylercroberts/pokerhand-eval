@@ -28,7 +28,7 @@ setup(
         ],
         "tests": ["pytest==5.2.1",
                   "pytest-cov==2.8.1",
-                  "coverage-badge",
+                  "coverage==3.7.1",
                   "python-coveralls==2.4.3"]
     },
 )
