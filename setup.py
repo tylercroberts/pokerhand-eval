@@ -14,7 +14,7 @@ setup(
     url='https://github.com/tylercroberts/pokerhand-eval',
     license='Apache, see LICENSE.txt',
     description='A pure python poker hand evaluator for 5, 6, 7 cards',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     install_requires=requires,
     extras_require={
         "docs": [
