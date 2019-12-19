@@ -80,13 +80,14 @@ class Card:
     def __hash__(self):
         return hash((self.rank, self.suit))
 
+
     @classmethod
-    def from_repr(cls, repr):
+    def from_repr(self, repr):
         """Return a card instance from repr.
         This is really dirty--it just matches between the parens.
         It's meant for debugging.
         """
-        between_parens = re.search(cls.REPR_RE, repr).group(1)
-        rank = cls.STRING_TO_RANK[between_parens[0].upper()]
-        suit = cls.STRING_TO_SUIT[between_parens[1].lower()]
+        between_parens = re.search(self.REPR_RE, repr).group(1)
+        rank = self.STRING_TO_RANK[between_parens[0].upper()]
+        suit = self.STRING_TO_SUIT[between_parens[1].lower()]
         return Card(rank, suit)

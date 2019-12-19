@@ -1,8 +1,10 @@
 Poker Hand Evaluator
 ====================
+![](https://travis-ci.com/tylercroberts/pokerhand-eval.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/tylercroberts/pokerhand-eval/badge.svg?branch=master)](https://coveralls.io/github/tylercroberts/pokerhand-eval?branch=master)
 
-In pure python
+THIS IS NOT AN OFFICAL FORK OF THE POKER-EVAL LIBRARY
 
+Original Author:
 27 January 2011, Alvin Liang
 
 Introduction
@@ -70,7 +72,8 @@ work on this in the future. Basically, I made it, so why not release it?
 Contributors
 ------------
 
--  Me! Go me!
+-  Alvin Liang (Original Author)
+-  Tyler Roberts (Changes in this fork)
 -  Zach Wissner-Gross (2-card algorithm)
 -  arslr (Fixes for other Python versions)
 -  Jim Kelly (Help with packaging, additional documentation)
