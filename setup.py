@@ -27,7 +27,8 @@ setup(
             "sphinx_copybutton==0.2.5",
         ],
         "tests": ["pytest==5.2.1",
-                  "pytest-cov",
-                  "coveralls==1.8.0"]
+                  "pytest-cov==2.8.1",
+                  "coverage=='4.5.4"
+                  "coveralls"]
     },
 )
