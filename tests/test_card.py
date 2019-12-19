@@ -156,7 +156,7 @@ class TestEvaluator(object):
         # assert straight_flush_score > flush_score
 
     def test_six_cards(self, pair_cards, twopair_cards, straight_cards,
-                       flush_cards, fullhouse_cards, straight_flush_cards):
+                       flush_cards, fullhouse_cards, fullhouse_twotrips_cards, straight_flush_cards):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3), Card(5, 3)]
         swe = SixHandEvaluator()
@@ -168,20 +168,22 @@ class TestEvaluator(object):
         flush_score = swe.evaluate_hand(*flush_cards['six'])
         straight_score = swe.evaluate_hand(*straight_cards['six'])
         fullhouse_score = swe.evaluate_hand(*fullhouse_cards['six'])
+        fullhouse_twotrips_score = swe.evaluate_hand(*fullhouse_twotrips_cards['six'])
         straight_flush_score = swe.evaluate_hand(*straight_flush_cards['six'])
 
 
     def test_seven_cards(self, pair_cards, twopair_cards, straight_cards,
-                         flush_cards, fullhouse_cards, straight_flush_cards):
+                         flush_cards, fullhouse_cards, fullhouse_twotrips_cards, straight_flush_cards):
         hole = [Card(2, 1), Card(2, 2)]
         board = [Card(2, 3), Card(3, 3), Card(4, 3), Card(5, 3), Card(8, 4)]
         swe = SevenHandEvaluator()
         trips_score = swe.evaluate_hand(hole, board)
-        assert np.isclose(trips_score, 0.4292929292929293,)
+        assert np.isclose(trips_score, 0.4292929292929293)
 
         pair_score = swe.evaluate_hand(*pair_cards['seven'])
         twopair_score = swe.evaluate_hand(*twopair_cards['seven'])
         flush_score = swe.evaluate_hand(*flush_cards['seven'])
         straight_score = swe.evaluate_hand(*straight_cards['seven'])
         fullhouse_score = swe.evaluate_hand(*fullhouse_cards['seven'])
+        fullhouse_twotrips_score = swe.evaluate_hand(*fullhouse_twotrips_cards['seven'])
         straight_flush_score = swe.evaluate_hand(*straight_flush_cards['seven'])
