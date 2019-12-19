@@ -319,24 +319,23 @@ class SixHandEvaluator(BaseHandEvaluator):
 
         # Once you have a flush, there is no other higher hand you can make
         # except straight flush, so just need to determine the highest flush
-        flush_out = self._evaluate_flush(bh, odd_xor, even_xor)
-        if flush_out is not None:
-            return flush_out
+        rank = self._evaluate_flush(bh, odd_xor, even_xor)
+        if rank is None:
+            # Get ready for a wild ride:
 
-        # Otherwise, get ready for a wild ride:
-
-        # Can determine this by using 2 XORs to reduce the size of the lookup.
-        # You have an even number of cards, therefore
-        # any odd_xor with an odd number of bits set is not possible.
-        # Any time you can't disambiguate 2/4 or 1/3, use primes.
-        # We also assume you can count bits or determine a power of two.
+            # Can determine this by using 2 XORs to reduce the size of the lookup.
+            # You have an even number of cards, therefore
+            # any odd_xor with an odd number of bits set is not possible.
+            # Any time you can't disambiguate 2/4 or 1/3, use primes.
+            # We also assume you can count bits or determine a power of two.
             # (see PopCount class.)
-        if even_xor == 0:  # x-0
-            return self._evaluate_x0(bh, odd_xor)
-        elif odd_xor == 0:  # 0-x
-            return self._evaluate_0x(bh, even_xor)
-        else:  # odd_popcount is 4 or 2, even is 1 or 2
-            return self._evaluate_xx(bh, odd_xor, even_xor)
+            if even_xor == 0:  # x-0
+                rank = self._evaluate_x0(bh, odd_xor)
+            elif odd_xor == 0:  # 0-x
+                rank = self._evaluate_0x(bh, even_xor)
+            else:  # odd_popcount is 4 or 2, even is 1 or 2
+                rank = self._evaluate_xx(bh, odd_xor, even_xor)
+        return rank
 
 
 class SevenHandEvaluator(BaseHandEvaluator):
@@ -459,18 +458,13 @@ class SevenHandEvaluator(BaseHandEvaluator):
         odd_xor = reduce(__xor__, bh) >> 16
         even_xor = (reduce(__or__, bh) >> 16) ^ odd_xor
 
-        flush_out = self._evaluate_flush(bh, odd_xor, even_xor)
-
-        # TODO: This should be setting rank = _evaluate_flush, as with everything else, then return outside ifs
-        if flush_out is not None:
-            return flush_out
-
-
+        rank = self._evaluate_flush(bh, odd_xor, even_xor)
+        if rank is  None:
         # 7 cards is odd, so you have to have an odd number of bits in odd_xor
+            if even_xor == 0:  # x-0
+                rank = self._evaluate_x0(bh, odd_xor)
+            else:
+                rank = self._evaluate_xx(bh, odd_xor, even_xor)
 
-        if even_xor == 0:  # x-0
-            return self._evaluate_x0(bh, odd_xor)
-
-        else:
-            return self._evaluate_xx(bh, odd_xor, even_xor)
+        return rank
 
