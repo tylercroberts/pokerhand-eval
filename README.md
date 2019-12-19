@@ -1,6 +1,6 @@
 Poker Hand Evaluator
 ====================
-![](https://travis-ci.com/tylercroberts/pokerhand-eval.svg?branch=rewrite_evaluator) [![Coverage Status](https://coveralls.io/repos/github/tylercroberts/pokerhand-eval/badge.svg?branch=rewrite_evaluator)](https://coveralls.io/github/tylercroberts/pokerhand-eval?branch=rewrite_evaluator)
+![](https://travis-ci.com/tylercroberts/pokerhand-eval.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/tylercroberts/pokerhand-eval/badge.svg?branch=master)](https://coveralls.io/github/tylercroberts/pokerhand-eval?branch=master)
 
 THIS IS NOT AN OFFICAL FORK OF THE POKER-EVAL LIBRARY
 
